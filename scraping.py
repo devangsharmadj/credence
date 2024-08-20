@@ -35,6 +35,8 @@ def main():
     if request.method == "POST":
         q = request.form['query']
         exec_sel(q)
+        news_sel(q)
+        owner_sel(q)
         # news_sel(q)
         # owner_sel(q)
         comp = ""
@@ -43,14 +45,22 @@ def main():
                 break
             else:
                 comp += c
+        owner_file_name = f"owner_{comp}.csv"
+        news_file_name = f"news_{comp}.txt"
         exec_file_name = f"executives_{comp}"
-        blob = bucket.blob(exec_file_name)
-        blob.upload_from_filename(exec_file_name, content_type="text/plain")
-        blob.make_public()
-        links = {'exec': blob.public_url}
+        blob_e = bucket.blob(exec_file_name)
+        blob_o = bucket.blob(owner_file_name)
+        blob_n = bucket.blob(news_file_name)
+        blob_e.upload_from_filename(exec_file_name, content_type="text/plain")
+        blob_o.upload_from_filename(owner_file_name)
+        blob_n.upload_from_filename(news_file_name)
+        blob_e.make_public()
+        blob_n.make_public()
+        blob_o.make_public()
+        links = {'exec': blob_e.public_url, 'owner': blob_o.public_url, 'news': blob_n.public_url}
         return render_template('index.html', **links)
     else:
-        return render_template('index.html')
+        return render_emplate('index.html')
 
 # @app.route("/scrape", methods=["POST"])
 # def scrape():
@@ -100,7 +110,13 @@ def owner_sel(base):
     table = soup.find('table')
 
     rows = table.find_all('tr')
-    with open(f'owner_{base}.csv', 'w', newline='') as file:
+    comp = ""
+    for c in base[::-1]:
+        if c == "/":
+            break
+        else:
+            comp += c
+    with open(f'owner_{comp}.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         for row in rows:
             cols = row.find_all(['td', 'th'])
@@ -119,8 +135,15 @@ def news_sel(base):
             names.append(news[i].find('a').text)
             temp = news[i].find('a').get('href')
             links.append(f'https://www.morningstar.com{temp}')
+    
+    comp = ""
+    for c in base[::-1]:
+        if c == "/":
+            break
+        else:
+            comp += c
             
-    with open(f'news_{base}.txt', 'w') as file:
+    with open(f'news_{comp}.txt', 'w') as file:
         if len(names) == 0:
             file.write('No news articles found on morningstar')
         else:
@@ -158,4 +181,8 @@ Export data from financials
 Summary, 5 sections under profile
 Competitors
 
+"""
+"""
+Financials (all three, income statements, balance sheet, cash flow)
+about us
 """
